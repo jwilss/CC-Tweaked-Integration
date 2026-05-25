@@ -1,5 +1,5 @@
 --========================================================--
---  ui.lua  |  3‑Column Gems + Raw + Ingots (buffered)
+--  ui.lua  |  3‑Column Gems + Raw + Ingots (final, no flicker)
 --========================================================--
 
 local ui = {}
@@ -20,22 +20,71 @@ end
 ------------------------------------------------------------
 -- Helpers
 ------------------------------------------------------------
-local function matchesStrict(id, patterns)
+local GEM_WHITELIST = {
+    "diamond",
+    "emerald",
+    "lapis_lazuli",
+    "redstone",
+    "quartz",
+    "amethyst",
+    "ruby",
+    "sapphire",
+    "topaz",
+    "peridot",
+    "fluorite",
+    "opal",
+    "garnet",
+    "onyx",
+    "aquamarine",
+    "alexandrite",
+    "citrine",
+    "malachite"
+}
+
+local function isGem(id)
     if not id then return false end
-    for _, p in ipairs(patterns) do
-        if string.match(id, p) then
+    for _, g in ipairs(GEM_WHITELIST) do
+        if id:match(":" .. g .. "$") then
             return true
         end
     end
     return false
 end
 
-local function collect(patterns)
+local function collectGems()
     local items = ae.listItems()
     local out = {}
 
     for _, it in ipairs(items) do
-        if matchesStrict(it.id, patterns) then
+        if isGem(it.id) then
+            table.insert(out, { name = it.displayName, count = it.amount })
+        end
+    end
+
+    table.sort(out, function(a, b) return a.name < b.name end)
+    return out
+end
+
+local function collectRaw()
+    local items = ae.listItems()
+    local out = {}
+
+    for _, it in ipairs(items) do
+        if it.id:match("raw_") then
+            table.insert(out, { name = it.displayName, count = it.amount })
+        end
+    end
+
+    table.sort(out, function(a, b) return a.name < b.name end)
+    return out
+end
+
+local function collectIngots()
+    local items = ae.listItems()
+    local out = {}
+
+    for _, it in ipairs(items) do
+        if it.id:match("_ingot$") or it.id:match("ingot_") then
             table.insert(out, { name = it.displayName, count = it.amount })
         end
     end
@@ -45,26 +94,7 @@ local function collect(patterns)
 end
 
 ------------------------------------------------------------
--- Draw a column into a buffer
-------------------------------------------------------------
-local function drawColumn(buf, x, title, list, colWidth)
-    local y = 2
-
-    buf[y] = buf[y] or {}
-    buf[y][x] = title
-    y = y + 2
-
-    for _, item in ipairs(list) do
-        local line = item.name .. ": " .. item.count
-        line = line .. string.rep(" ", colWidth - #line)
-        buf[y] = buf[y] or {}
-        buf[y][x] = line
-        y = y + 1
-    end
-end
-
-------------------------------------------------------------
--- Main draw
+-- Draw
 ------------------------------------------------------------
 function ui.draw()
     local w, h = mon.getSize()
@@ -74,65 +104,62 @@ function ui.draw()
     local col2 = col1 + colWidth
     local col3 = col2 + colWidth
 
-    --------------------------------------------------------
-    -- Strict gem patterns (no tools/armor)
-    --------------------------------------------------------
-    local gemPatterns = {
-        ":diamond$",
-        ":emerald$",
-        ":lapis_lazuli$",
-        ":redstone$",
-        ":quartz$",
-        ":amethyst$",
-        ":ruby$",
-        ":sapphire$",
-        ":topaz$",
-        ":peridot$",
-        ":fluorite$",
-        ":opal$",
-        ":garnet$",
-        ":onyx$",
-        ":aquamarine$",
-        ":malachite$",
-        ":citrine$",
-        ":alexandrite$"
-    }
-
-    local gems = collect(gemPatterns)
-    local raw = collect({ "raw_" })
-    local ingots = collect({ "_ingot$", "ingot_" })
-
-    --------------------------------------------------------
-    -- Build buffer
-    --------------------------------------------------------
+    -- Build full-frame buffer
     local buffer = {}
-
-    -- ENERGY BAR
-    buffer[1] = {}
-    buffer[1][1] = "[ ENERGY ] Stored: N/A   Capacity: N/A" ..
-                   string.rep(" ", w - 34)
-
-    -- Columns
-    drawColumn(buffer, col1, "[ GEMS ]", gems, colWidth)
-    drawColumn(buffer, col2, "[ RAW ]", raw, colWidth)
-    drawColumn(buffer, col3, "[ INGOTS ]", ingots, colWidth)
+    for y = 1, h do
+        buffer[y] = string.rep(" ", w)
+    end
 
     --------------------------------------------------------
-    -- Flush buffer to monitor (no flicker)
+    -- ENERGY BAR
+    --------------------------------------------------------
+    local energyLine = "[ ENERGY ] Stored: N/A   Capacity: N/A"
+    buffer[1] = energyLine .. string.rep(" ", w - #energyLine)
+
+    --------------------------------------------------------
+    -- Collect data
+    --------------------------------------------------------
+    local gems = collectGems()
+    local raw = collectRaw()
+    local ingots = collectIngots()
+
+    --------------------------------------------------------
+    -- Column writer
+    --------------------------------------------------------
+    local function writeColumn(startX, title, list)
+        local y = 3
+
+        -- Title
+        local t = title .. string.rep(" ", colWidth - #title)
+        buffer[y] = buffer[y]:sub(1, startX - 1) .. t .. buffer[y]:sub(startX + #t)
+        y = y + 2
+
+        -- Items
+        for i = 1, math.min(#list, h - y) do
+            local line = list[i].name .. ": " .. list[i].count
+            if #line > colWidth then
+                line = line:sub(1, colWidth)
+            end
+            line = line .. string.rep(" ", colWidth - #line)
+
+            buffer[y] = buffer[y]:sub(1, startX - 1) .. line .. buffer[y]:sub(startX + #line)
+            y = y + 1
+        end
+    end
+
+    --------------------------------------------------------
+    -- Draw columns
+    --------------------------------------------------------
+    writeColumn(col1, "[ GEMS ]", gems)
+    writeColumn(col2, "[ RAW ]", raw)
+    writeColumn(col3, "[ INGOTS ]", ingots)
+
+    --------------------------------------------------------
+    -- Flush buffer (no flicker)
     --------------------------------------------------------
     for y = 1, h do
         mon.setCursorPos(1, y)
-        local line = ""
-
-        if buffer[y] then
-            for x = 1, w do
-                line = line .. (buffer[y][x] or " ")
-            end
-        else
-            line = string.rep(" ", w)
-        end
-
-        mon.write(line)
+        mon.write(buffer[y])
     end
 end
 
