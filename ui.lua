@@ -1,5 +1,5 @@
 --========================================================--
---  ui.lua  |  Ores + Ingots + Energy (minimal + stable) 3
+--  ui.lua  |  3‑Column Ores + Raw + Ingots (no flicker)
 --========================================================--
 
 local ui = {}
@@ -20,19 +20,6 @@ end
 ------------------------------------------------------------
 -- Helpers
 ------------------------------------------------------------
-local function header(text, y)
-    mon.setCursorPos(1, y)
-    mon.setBackgroundColor(colors.yellow)
-    mon.setTextColor(colors.black)
-
-    local w = mon.getSize()
-    mon.write(text .. string.rep("=", w - #text))
-
-    mon.setBackgroundColor(colors.black)
-    mon.setTextColor(colors.white)
-    return y + 1
-end
-
 local function matches(str, patterns)
     if not str then return false end
     for _, p in ipairs(patterns) do
@@ -43,20 +30,12 @@ local function matches(str, patterns)
     return false
 end
 
-local function getOres()
+local function collect(patterns)
     local items = ae.listItems()
     local out = {}
 
-    local orePatterns = {
-        "_ore",
-        "ore_",
-        "deepslate_.*_ore",
-        "nether_.*_ore",
-        "end_.*_ore"
-    }
-
     for _, it in ipairs(items) do
-        if matches(it.id, orePatterns) then
+        if matches(it.id, patterns) then
             table.insert(out, { name = it.displayName, count = it.amount })
         end
     end
@@ -65,57 +44,63 @@ local function getOres()
     return out
 end
 
-local function getIngots()
-    local items = ae.listItems()
-    local out = {}
+local function drawColumn(x, title, list)
+    local y = 1
 
-    local ingotPatterns = {
-        "_ingot",
-        "ingot_"
-    }
+    -- Header
+    mon.setCursorPos(x, y)
+    mon.setBackgroundColor(colors.yellow)
+    mon.setTextColor(colors.black)
+    mon.write(title)
+    mon.setBackgroundColor(colors.black)
+    mon.setTextColor(colors.white)
+    y = y + 2
 
-    for _, it in ipairs(items) do
-        if matches(it.id, ingotPatterns) then
-            table.insert(out, { name = it.displayName, count = it.amount })
-        end
+    -- Items
+    for _, item in ipairs(list) do
+        mon.setCursorPos(x, y)
+        mon.write(item.name .. ": " .. item.count)
+        y = y + 1
     end
-
-    table.sort(out, function(a, b) return a.name < b.name end)
-    return out
 end
 
 ------------------------------------------------------------
 -- Draw
 ------------------------------------------------------------
 function ui.draw()
-    mon.clear()
-    local y = 1
+    -- No mon.clear() → prevents flicker
 
-    -- ENERGY (placeholder)
-    y = header("[ ENERGY ]", y)
-    mon.setCursorPos(1, y)
-    mon.write("Stored: N/A")
-    y = y + 1
-    mon.setCursorPos(1, y)
-    mon.write("Capacity: N/A")
-    y = y + 2
+    local w, h = mon.getSize()
+    local colWidth = math.floor(w / 3)
 
-    -- ORES
-    y = header("[ ORES ]", y)
-    for _, o in ipairs(getOres()) do
-        mon.setCursorPos(1, y)
-        mon.write(o.name .. ": " .. o.count)
-        y = y + 1
-    end
-    y = y + 1
+    -- Column X positions
+    local col1 = 1
+    local col2 = col1 + colWidth
+    local col3 = col2 + colWidth
 
-    -- INGOTS
-    y = header("[ INGOTS ]", y)
-    for _, i in ipairs(getIngots()) do
-        mon.setCursorPos(1, y)
-        mon.write(i.name .. ": " .. i.count)
-        y = y + 1
-    end
+    -- Collect data
+    local ores = collect({
+        "_ore",
+        "ore_",
+        "deepslate_.*_ore",
+        "nether_.*_ore",
+        "end_.*_ore"
+    })
+
+    local raw = collect({
+        "raw_",
+        "_raw"
+    })
+
+    local ingots = collect({
+        "_ingot",
+        "ingot_"
+    })
+
+    -- Draw columns
+    drawColumn(col1, "[ ORES ]", ores)
+    drawColumn(col2, "[ RAW ]", raw)
+    drawColumn(col3, "[ INGOTS ]", ingots)
 end
 
 return ui
