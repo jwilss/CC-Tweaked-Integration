@@ -27,7 +27,6 @@ ui.bootScreen()
 -- Main Render Function
 ------------------------------------------------------------
 local function render()
-    local w, h = monitor.getSize()
     local y = 1
 
     monitor.setBackgroundColor(config.ui.backgroundColor)
