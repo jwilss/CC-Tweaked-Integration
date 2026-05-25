@@ -1,5 +1,5 @@
 --========================================================--
---  ui.lua  |  Gems + Raw + Ingots + Powah Energy (final)
+--  ui.lua  |  Column1: Gems+Raw | Column2: Ingots | Column3: Spawner Drops
 --========================================================--
 
 local ui = {}
@@ -75,13 +75,11 @@ end
 local function collectGems()
     local items = ae.listItems()
     local out = {}
-
     for _, it in ipairs(items) do
         if isGem(it.id) then
             table.insert(out, { name = it.displayName, count = it.amount })
         end
     end
-
     table.sort(out, function(a, b) return a.name < b.name end)
     return out
 end
@@ -89,13 +87,11 @@ end
 local function collectRaw()
     local items = ae.listItems()
     local out = {}
-
     for _, it in ipairs(items) do
         if it.id:match("raw_") then
             table.insert(out, { name = it.displayName, count = it.amount })
         end
     end
-
     table.sort(out, function(a, b) return a.name < b.name end)
     return out
 end
@@ -103,13 +99,11 @@ end
 local function collectIngots()
     local items = ae.listItems()
     local out = {}
-
     for _, it in ipairs(items) do
         if it.id:match("_ingot$") or it.id:match("ingot_") then
             table.insert(out, { name = it.displayName, count = it.amount })
         end
     end
-
     table.sort(out, function(a, b) return a.name < b.name end)
     return out
 end
@@ -152,21 +146,30 @@ function ui.draw()
     end
 
     --------------------------------------------------------
-    -- ENERGY BAR
+    -- ENERGY BAR (single line)
     --------------------------------------------------------
     local stored, max = getEnergyTotals()
     local pct = (max > 0) and math.floor((stored / max) * 100) or 0
 
-    local energyLine = string.format(
-        "[ ENERGY ] %s / %s RF  (%d%%)",
+    local left = string.format(
+        "[ ENERGY ] %s / %s RF (%d%%)  ",
         stored, max, pct
     )
 
-    if #energyLine > w then
-        energyLine = energyLine:sub(1, w)
+    local barWidth = w - #left
+    if barWidth < 10 then barWidth = 10 end
+
+    local filled = math.floor((pct / 100) * barWidth)
+    local bar = string.rep("█", filled) .. string.rep("░", barWidth - filled)
+
+    local line = left .. bar
+    if #line > w then
+        line = line:sub(1, w)
+    else
+        line = line .. string.rep(" ", w - #line)
     end
 
-    buffer[1] = energyLine .. string.rep(" ", w - #energyLine)
+    buffer[1] = line
 
     --------------------------------------------------------
     -- Collect data
@@ -178,8 +181,8 @@ function ui.draw()
     --------------------------------------------------------
     -- Column writer
     --------------------------------------------------------
-    local function writeColumn(startX, title, list)
-        local y = 3
+    local function writeColumn(startX, title, list, startY)
+        local y = startY
 
         -- Title
         local t = title
@@ -199,14 +202,25 @@ function ui.draw()
             buffer[y] = buffer[y]:sub(1, startX - 1) .. line .. buffer[y]:sub(startX + #line)
             y = y + 1
         end
+
+        return y
     end
 
     --------------------------------------------------------
-    -- Draw columns
+    -- Column 1: GEMS then RAW
     --------------------------------------------------------
-    writeColumn(col1, "[ GEMS ]",   gems)
-    writeColumn(col2, "[ RAW ]",    raw)
-    writeColumn(col3, "[ INGOTS ]", ingots)
+    local nextY = writeColumn(col1, "[ GEMS ]", gems, 3)
+    writeColumn(col1, "[ RAW ]", raw, nextY + 1)
+
+    --------------------------------------------------------
+    -- Column 2: INGOTS
+    --------------------------------------------------------
+    writeColumn(col2, "[ INGOTS ]", ingots, 3)
+
+    --------------------------------------------------------
+    -- Column 3: RESERVED FOR SPAWNER DROPS
+    --------------------------------------------------------
+    writeColumn(col3, "[ SPAWNER DROPS ]", {}, 3)
 
     --------------------------------------------------------
     -- Flush buffer (no flicker)
@@ -214,6 +228,16 @@ function ui.draw()
     for y = 1, h do
         mon.setCursorPos(1, y)
         mon.write(buffer[y])
+    end
+end
+
+------------------------------------------------------------
+-- Update interval
+------------------------------------------------------------
+function ui.run()
+    while true do
+        ui.draw()
+        sleep(2)
     end
 end
 
