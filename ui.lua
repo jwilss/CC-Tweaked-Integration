@@ -1,5 +1,5 @@
 --========================================================--
---  ui.lua  |  3‑Column Gems + Raw + Ingots (no flicker)
+--  ui.lua  |  3‑Column Gems + Raw + Ingots (buffered)
 --========================================================--
 
 local ui = {}
@@ -20,17 +20,10 @@ end
 ------------------------------------------------------------
 -- Helpers
 ------------------------------------------------------------
-local function clearColumn(x, width, height)
-    for y = 1, height do
-        mon.setCursorPos(x, y)
-        mon.write(string.rep(" ", width))
-    end
-end
-
-local function matches(str, patterns)
-    if not str then return false end
+local function matchesStrict(id, patterns)
+    if not id then return false end
     for _, p in ipairs(patterns) do
-        if string.find(str, p) then
+        if string.match(id, p) then
             return true
         end
     end
@@ -42,7 +35,7 @@ local function collect(patterns)
     local out = {}
 
     for _, it in ipairs(items) do
-        if matches(it.id, patterns) then
+        if matchesStrict(it.id, patterns) then
             table.insert(out, { name = it.displayName, count = it.amount })
         end
     end
@@ -51,29 +44,27 @@ local function collect(patterns)
     return out
 end
 
-local function drawColumn(x, width, title, list)
+------------------------------------------------------------
+-- Draw a column into a buffer
+------------------------------------------------------------
+local function drawColumn(buf, x, title, list, colWidth)
     local y = 2
 
-    -- Header
-    mon.setCursorPos(x, y)
-    mon.setBackgroundColor(colors.yellow)
-    mon.setTextColor(colors.black)
-    mon.write(title .. string.rep(" ", width - #title))
-    mon.setBackgroundColor(colors.black)
-    mon.setTextColor(colors.white)
+    buf[y] = buf[y] or {}
+    buf[y][x] = title
     y = y + 2
 
-    -- Items
     for _, item in ipairs(list) do
-        mon.setCursorPos(x, y)
         local line = item.name .. ": " .. item.count
-        mon.write(line .. string.rep(" ", width - #line))
+        line = line .. string.rep(" ", colWidth - #line)
+        buf[y] = buf[y] or {}
+        buf[y][x] = line
         y = y + 1
     end
 end
 
 ------------------------------------------------------------
--- Draw
+-- Main draw
 ------------------------------------------------------------
 function ui.draw()
     local w, h = mon.getSize()
@@ -83,65 +74,66 @@ function ui.draw()
     local col2 = col1 + colWidth
     local col3 = col2 + colWidth
 
-    -- Clear columns (prevents ghosting)
-    clearColumn(col1, colWidth, h)
-    clearColumn(col2, colWidth, h)
-    clearColumn(col3, colWidth, h)
+    --------------------------------------------------------
+    -- Strict gem patterns (no tools/armor)
+    --------------------------------------------------------
+    local gemPatterns = {
+        ":diamond$",
+        ":emerald$",
+        ":lapis_lazuli$",
+        ":redstone$",
+        ":quartz$",
+        ":amethyst$",
+        ":ruby$",
+        ":sapphire$",
+        ":topaz$",
+        ":peridot$",
+        ":fluorite$",
+        ":opal$",
+        ":garnet$",
+        ":onyx$",
+        ":aquamarine$",
+        ":malachite$",
+        ":citrine$",
+        ":alexandrite$"
+    }
+
+    local gems = collect(gemPatterns)
+    local raw = collect({ "raw_" })
+    local ingots = collect({ "_ingot$", "ingot_" })
 
     --------------------------------------------------------
-    -- ENERGY BAR (full width)
+    -- Build buffer
     --------------------------------------------------------
-    mon.setCursorPos(1, 1)
-    mon.setBackgroundColor(colors.blue)
-    mon.setTextColor(colors.white)
-    mon.write("[ ENERGY ] Stored: N/A   Capacity: N/A" ..
-              string.rep(" ", w - 34))
-    mon.setBackgroundColor(colors.black)
-    mon.setTextColor(colors.white)
+    local buffer = {}
+
+    -- ENERGY BAR
+    buffer[1] = {}
+    buffer[1][1] = "[ ENERGY ] Stored: N/A   Capacity: N/A" ..
+                   string.rep(" ", w - 34)
+
+    -- Columns
+    drawColumn(buffer, col1, "[ GEMS ]", gems, colWidth)
+    drawColumn(buffer, col2, "[ RAW ]", raw, colWidth)
+    drawColumn(buffer, col3, "[ INGOTS ]", ingots, colWidth)
 
     --------------------------------------------------------
-    -- GEMS
+    -- Flush buffer to monitor (no flicker)
     --------------------------------------------------------
-    local gems = collect({
-        "diamond",
-        "emerald",
-        "lapis",
-        "redstone",
-        "quartz",
-        "amethyst",
-        "ruby",
-        "sapphire",
-        "topaz",
-        "peridot",
-        "fluorite",
-        "_gem",
-        "gem_",
-        "_crystal",
-        "crystal_"
-    })
+    for y = 1, h do
+        mon.setCursorPos(1, y)
+        local line = ""
 
-    --------------------------------------------------------
-    -- RAW MATERIALS
-    --------------------------------------------------------
-    local raw = collect({
-        "raw_",
-        "_raw"
-    })
+        if buffer[y] then
+            for x = 1, w do
+                line = line .. (buffer[y][x] or " ")
+            end
+        else
+            line = string.rep(" ", w)
+        end
 
-    --------------------------------------------------------
-    -- INGOTS
-    --------------------------------------------------------
-    local ingots = collect({
-        "_ingot",
-        "ingot_"
-    })
-
-    --------------------------------------------------------
-    -- Draw columns
-    --------------------------------------------------------
-    drawColumn(col1, colWidth, "[ GEMS ]", gems)
-    drawColumn(col2, colWidth, "[ RAW ]", raw)
-    drawColumn(col3, colWidth, "[ INGOTS ]", ingots)
+        mon.write(line)
+    end
 end
 
 return ui
