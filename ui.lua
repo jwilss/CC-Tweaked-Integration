@@ -1,5 +1,5 @@
 --========================================================--
---  ui.lua  |  Gems (Vanilla + AllTheOres) + Raw + Ingots
+--  ui.lua  |  Gems + Raw + Ingots + Powah Energy (final)
 --========================================================--
 
 local ui = {}
@@ -46,7 +46,7 @@ local ATO_GEMS = {
 local function isGem(id)
     if not id then return false end
 
-    -- 1. Vanilla gems (minecraft:)
+    -- Vanilla gems
     if id:match("^minecraft:") then
         for _, g in ipairs(VANILLA_GEMS) do
             if id:match(":" .. g .. "$") then
@@ -56,7 +56,7 @@ local function isGem(id)
         return false
     end
 
-    -- 2. AllTheOres gems (alltheores:)
+    -- AllTheOres gems
     if id:match("^alltheores:") then
         for _, g in ipairs(ATO_GEMS) do
             if id:match(":" .. g .. "$") then
@@ -66,7 +66,6 @@ local function isGem(id)
         return false
     end
 
-    -- 3. Everything else is not a gem
     return false
 end
 
@@ -116,6 +115,26 @@ local function collectIngots()
 end
 
 ------------------------------------------------------------
+-- Powah Ender Cell Energy
+------------------------------------------------------------
+local function getEnergyTotals()
+    local totalStored = 0
+    local totalMax = 0
+
+    for _, name in ipairs(peripheral.getNames()) do
+        if name:match("^ender_cell_") then
+            local cell = peripheral.wrap(name)
+            if cell and cell.getEnergy and cell.getMaxEnergy then
+                totalStored = totalStored + (cell.getEnergy() or 0)
+                totalMax    = totalMax    + (cell.getMaxEnergy() or 0)
+            end
+        end
+    end
+
+    return totalStored, totalMax
+end
+
+------------------------------------------------------------
 -- Draw
 ------------------------------------------------------------
 function ui.draw()
@@ -135,10 +154,18 @@ function ui.draw()
     --------------------------------------------------------
     -- ENERGY BAR
     --------------------------------------------------------
-    local energyLine = "[ ENERGY ] Stored: N/A   Capacity: N/A"
+    local stored, max = getEnergyTotals()
+    local pct = (max > 0) and math.floor((stored / max) * 100) or 0
+
+    local energyLine = string.format(
+        "[ ENERGY ] %s / %s RF  (%d%%)",
+        stored, max, pct
+    )
+
     if #energyLine > w then
         energyLine = energyLine:sub(1, w)
     end
+
     buffer[1] = energyLine .. string.rep(" ", w - #energyLine)
 
     --------------------------------------------------------
