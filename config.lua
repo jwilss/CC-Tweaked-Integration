@@ -1,11 +1,11 @@
 --========================================================--
---  config.lua  |  BAER Industrial Configuration
+--  config.lua  |  BAER Industrial (ASCII‑Safe)
 --========================================================--
 
 local config = {}
 
 ------------------------------------------------------------
--- UI Theme (Industrial)
+-- UI Theme (Industrial ASCII)
 ------------------------------------------------------------
 config.ui = {
     scale            = 0.5,
@@ -30,10 +30,10 @@ config.ui = {
 -- Section Titles
 ------------------------------------------------------------
 config.sections = {
-    power    = "[⚡ POWER STATUS]",
-    items    = "[📦 STORAGE ITEMS]",
-    warnings = "[⚠ WARNINGS]",
-    crafting = "[🛠 CRAFTING JOBS]"
+    power    = "[ POWER STATUS ]",
+    items    = "[ STORAGE ITEMS ]",
+    warnings = "[ WARNINGS ]",
+    crafting = "[ CRAFTING JOBS ]"
 }
 
 ------------------------------------------------------------
