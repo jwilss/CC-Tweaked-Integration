@@ -1,5 +1,5 @@
 --========================================================--
---  ui.lua  |  Minimal BAER: Raw Materials + Ores + Energy
+--  ui.lua  |  Ores + Ingots + Energy (pattern-based)
 --========================================================--
 
 local ui = {}
@@ -33,17 +33,49 @@ local function header(text, y)
     return y + 1
 end
 
-local function getTaggedItems(tag)
+local function matches(str, patterns)
+    for _, p in ipairs(patterns) do
+        if string.find(str, p) then
+            return true
+        end
+    end
+    return false
+end
+
+local function getOres()
     local items = ae.listItems()
     local out = {}
 
+    local orePatterns = {
+        "_ore",
+        "ore_",
+        "deepslate_.*_ore",
+        "nether_.*_ore",
+        "end_.*_ore"
+    }
+
     for _, it in ipairs(items) do
-        if it.tags then
-            for _, t in ipairs(it.tags) do
-                if t == tag then
-                    table.insert(out, { name = it.displayName, count = it.amount })
-                end
-            end
+        if matches(it.name, orePatterns) then
+            table.insert(out, { name = it.displayName, count = it.amount })
+        end
+    end
+
+    table.sort(out, function(a, b) return a.name < b.name end)
+    return out
+end
+
+local function getIngots()
+    local items = ae.listItems()
+    local out = {}
+
+    local ingotPatterns = {
+        "_ingot",
+        "ingot_"
+    }
+
+    for _, it in ipairs(items) do
+        if matches(it.name, ingotPatterns) then
+            table.insert(out, { name = it.displayName, count = it.amount })
         end
     end
 
@@ -70,25 +102,23 @@ function ui.draw()
     y = y + 2
 
     --------------------------------------------------------
-    -- RAW MATERIALS
+    -- ORES
     --------------------------------------------------------
-    y = header("[ RAW MATERIALS ]", y)
-    local raws = getTaggedItems("c:raw_materials")
-    for _, r in ipairs(raws) do
+    y = header("[ ORES ]", y)
+    for _, o in ipairs(getOres()) do
         mon.setCursorPos(1, y)
-        mon.write(r.name .. ": " .. r.count)
+        mon.write(o.name .. ": " .. o.count)
         y = y + 1
     end
     y = y + 1
 
     --------------------------------------------------------
-    -- ORES
+    -- INGOTS
     --------------------------------------------------------
-    y = header("[ ORES ]", y)
-    local ores = getTaggedItems("c:ores")
-    for _, o in ipairs(ores) do
+    y = header("[ INGOTS ]", y)
+    for _, i in ipairs(getIngots()) do
         mon.setCursorPos(1, y)
-        mon.write(o.name .. ": " .. o.count)
+        mon.write(i.name .. ": " .. i.count)
         y = y + 1
     end
 end
