@@ -1,7 +1,3 @@
---========================================================--
---  ae.lua  |  Robust ME Bridge wrapper APPLES
---========================================================--
-
 local ae = {}
 
 local BRIDGE = "me_bridge_1"
@@ -13,7 +9,6 @@ function ae.listItems()
     local out = {}
 
     for _, it in pairs(raw) do
-        -- Advanced Peripherals usually uses fingerprint.id
         local id = it.name
         if not id and it.fingerprint and it.fingerprint.id then
             id = it.fingerprint.id
