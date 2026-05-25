@@ -1,5 +1,5 @@
 --========================================================--
---  ui.lua  |  BAER Industrial Dashboard UI
+--  ui.lua  |  BAER Industrial ASCII UI
 --========================================================--
 
 local ui = {}
@@ -33,7 +33,7 @@ local function writeCentered(y, text)
 end
 
 ------------------------------------------------------------
--- Boot Screen (Big Industrial BAER)
+-- ASCII‑Safe Boot Screen
 ------------------------------------------------------------
 function ui.bootScreen()
     local w, h = monitor.getSize()
@@ -42,15 +42,14 @@ function ui.bootScreen()
     monitor.clear()
 
     local logo = {
-        "   ██████╗  █████╗ ███████╗██████╗   ",
-        "   ██╔══██╗██╔══██╗██╔════╝██╔══██╗  ",
-        "   ██████╔╝███████║█████╗  ██████╔╝  ",
-        "   ██╔══██╗██╔══██║██╔══╝  ██╔══██╗  ",
-        "   ██████╔╝██║  ██║███████╗██║  ██║  ",
-        "   ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝  ",
-        "                                      ",
-        "   BIG APPLIED ENERGETICS READOUT     ",
-        "              (BAER)                  "
+        "   ###    ##   #####   #####        ",
+        "   #  #  #  #  #       #    #       ",
+        "   ###   ####  ####    #####        ",
+        "   #  #  #  #  #       #   #        ",
+        "   ###   #  #  #####   #    #       ",
+        "                                    ",
+        "   BIG APPLIED ENERGETICS READOUT   ",
+        "               (BAER)               "
     }
 
     local top = math.floor((h - #logo) / 2)
@@ -89,7 +88,7 @@ function ui.bootScreen()
 end
 
 ------------------------------------------------------------
--- Section Header (Industrial Hazard Style)
+-- Section Header (ASCII Hazard Style)
 ------------------------------------------------------------
 function ui.section(title, y)
     local w = select(1, monitor.getSize())
@@ -119,18 +118,11 @@ function ui.drawPower(percent, stored, cap, y)
     monitor.write(string.format("Power: %3d%%", percent or 0))
     y = y + 1
 
-    monitor.setCursorPos(1, y)
-    monitor.setBackgroundColor(colors.gray)
-    monitor.write(string.rep(" ", barWidth))
-
     local pct = math.max(0, math.min(100, percent or 0))
     local filled = math.floor(barWidth * (pct / 100))
 
     monitor.setCursorPos(1, y)
-    monitor.setBackgroundColor(colors.yellow)
-    monitor.write(string.rep(" ", filled))
-
-    monitor.setBackgroundColor(cfg.ui.backgroundColor)
+    monitor.write("[" .. string.rep("#", filled) .. string.rep("-", barWidth - filled) .. "]")
     y = y + 1
 
     monitor.setCursorPos(1, y)
@@ -155,7 +147,7 @@ function ui.drawItemList(items, y)
 end
 
 ------------------------------------------------------------
--- Pulsing Warning Banner
+-- Pulsing ASCII Warning Banner
 ------------------------------------------------------------
 local function updatePulse()
     local t = os.clock()
@@ -171,7 +163,6 @@ function ui.drawWarnings(warnings, y)
 
     for i = 0, 2 do
         monitor.setCursorPos(1, y + i)
-        monitor.setBackgroundColor(cfg.ui.backgroundColor)
         monitor.write(string.rep(" ", w))
     end
 
@@ -180,7 +171,7 @@ function ui.drawWarnings(warnings, y)
     end
 
     local wItem = warnings[1]
-    local msg = string.format("⚠ %s LOW — %d REMAINING", wItem.label, wItem.count)
+    local msg = string.format("! WARNING: %s LOW — %d REMAINING !", wItem.label, wItem.count)
 
     local bg, fg
     if pulsePhase == 1 then
@@ -191,17 +182,17 @@ function ui.drawWarnings(warnings, y)
         bg, fg = colors.red, colors.white
     end
 
-    monitor.setCursorPos(1, y)
     monitor.setBackgroundColor(bg)
     monitor.setTextColor(fg)
-    monitor.write(string.rep("█", w))
+
+    monitor.setCursorPos(1, y)
+    monitor.write(string.rep("#", w))
 
     monitor.setCursorPos(1, y + 1)
-    local line = " " .. msg .. " "
-    monitor.write(line .. string.rep(" ", math.max(0, w - #line)))
+    monitor.write(msg .. string.rep(" ", math.max(0, w - #msg)))
 
     monitor.setCursorPos(1, y + 2)
-    monitor.write(string.rep("█", w))
+    monitor.write(string.rep("#", w))
 
     monitor.setBackgroundColor(cfg.ui.backgroundColor)
     monitor.setTextColor(cfg.ui.textColor)
@@ -225,14 +216,7 @@ function ui.drawCrafting(jobs, y)
         local filled = math.floor(barWidth * (pct / 100))
 
         monitor.setCursorPos(1, y)
-        monitor.setBackgroundColor(colors.gray)
-        monitor.write(string.rep(" ", barWidth))
-
-        monitor.setCursorPos(1, y)
-        monitor.setBackgroundColor(colors.orange)
-        monitor.write(string.rep(" ", filled))
-
-        monitor.setBackgroundColor(cfg.ui.backgroundColor)
+        monitor.write("[" .. string.rep("#", filled) .. string.rep("-", barWidth - filled) .. "]")
         y = y + 1
     end
 
