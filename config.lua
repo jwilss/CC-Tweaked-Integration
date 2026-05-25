@@ -1,38 +1,18 @@
---========================================================--
---  config.lua  |  BAER Industrial ASCII Config
---========================================================--
+config.items = {
+    industrial_foregoing = {
+        latex   = { "industrialforegoing:latex_bucket" },
+        plastic = { "industrialforegoing:plastic" }
+    },
 
-local config = {}
+    essences = {
+        inferium   = { "mysticalagriculture:inferium_essence" },
+        prudentium = { "mysticalagriculture:prudentium_essence" },
+        supremium  = { "mysticalagriculture:supremium_essence" }
+    },
 
-config.ui = {
-    scale            = 0.5,
-    backgroundColor  = colors.black,
-    textColor        = colors.white,
-    sectionBackground = colors.yellow,
-    sectionText       = colors.black,
-    warnBackground   = colors.red,
-    warnText         = colors.white,
-    bootBackground   = colors.black,
-    bootText         = colors.yellow,
-    bootDelay        = 0.02,
-    warnPulseSpeed   = 0.4
+    mob_drops = {
+        gunpowder = { "minecraft:gunpowder" },
+        pearls    = { "minecraft:ender_pearl" },
+        skulls    = { "minecraft:wither_skeleton_skull" }
+    }
 }
-
-config.sections = {
-    power    = "[ POWER ]",
-    storage  = "[ STORAGE ]",
-    machines = "[ MACHINES ]",
-    farms    = "[ FARMS ]",
-    warnings = "[ WARNINGS ]"
-}
-
-config.updateInterval = 0.5
-
-config.warningItems = {
-    { name="minecraft:netherite_upgrade_smithing_template", label="Netherite", threshold=1 },
-    { name="allthemodium:allthemodium_upgrade_smithing_template", label="Allthemodium", threshold=1 },
-    { name="allthemodium:vibranium_upgrade_smithing_template", label="Vibranium", threshold=1 },
-    { name="allthemodium:unobtainium_upgrade_smithing_template", label="Unobtainium", threshold=1 }
-}
-
-return config
