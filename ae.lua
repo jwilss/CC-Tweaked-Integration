@@ -1,19 +1,18 @@
 --========================================================--
---  ae.lua  |  Universal AE2 Module (getItems compatible)
+--  ae.lua  |  ATM10 v7 AE2 Module (count-based)
 --========================================================--
 
 local ae = {}
 
 ------------------------------------------------------------
--- Locate ME Bridge (supports all naming variants)
+-- Locate ME Bridge
 ------------------------------------------------------------
 local function findMEBridge()
     for _, name in ipairs(peripheral.getNames()) do
         local t = peripheral.getType(name)
         if t == "meBridge"
         or t == "me_bridge"
-        or t == "advancedperipherals:me_bridge"
-        or t == "advancedperipherals:mebridge" then
+        or t == "advancedperipherals:me_bridge" then
             return peripheral.wrap(name)
         end
     end
@@ -23,91 +22,54 @@ end
 local me = findMEBridge()
 
 ------------------------------------------------------------
--- Detect which item API is available
+-- Fetch all items (ATM10 uses getItems)
 ------------------------------------------------------------
-local HAS_GET_ITEMS   = type(me.getItems)   == "function"
-local HAS_LIST_ITEMS  = type(me.listItems)  == "function"
-local HAS_GET_ITEM    = type(me.getItem)    == "function"
-
-------------------------------------------------------------
--- Internal: fetch all items from ME system
-------------------------------------------------------------
-local function fetchAllItems()
-    if HAS_GET_ITEMS then
+local function fetchAll()
+    if type(me.getItems) == "function" then
         return me.getItems() or {}
-    elseif HAS_LIST_ITEMS then
-        return me.listItems() or {}
-    else
-        return {}
     end
+    return {}
 end
 
 ------------------------------------------------------------
--- Get count of a single item
+-- Count a single item
 ------------------------------------------------------------
 function ae.getItemCount(name)
-    -- Fast path: getItems()
-    if HAS_GET_ITEMS then
-        local all = me.getItems()
-        if not all then return 0 end
+    local all = fetchAll()
 
-        for _, item in pairs(all) do
-            if item.name == name then
-                return item.amount or 0
-            end
+    for _, item in ipairs(all) do
+        if item.name == name then
+            return item.count or 0   -- ATM10 uses "count"
         end
-
-        return 0
-    end
-
-    -- Fallback: listItems()
-    if HAS_LIST_ITEMS then
-        local all = me.listItems()
-        if not all then return 0 end
-
-        for _, item in pairs(all) do
-            if item.name == name then
-                return item.amount or 0
-            end
-        end
-
-        return 0
-    end
-
-    -- Last resort: getItem()
-    if HAS_GET_ITEM then
-        local item = me.getItem({ name = name })
-        return (item and item.amount) or 0
     end
 
     return 0
 end
 
 ------------------------------------------------------------
--- Build tracked item list
+-- Build tracked list
 ------------------------------------------------------------
 function ae.getItemList(list)
-    local results = {}
+    local out = {}
     for _, entry in ipairs(list) do
-        table.insert(results, {
+        table.insert(out, {
             name  = entry.name,
             label = entry.label or entry.name,
             count = ae.getItemCount(entry.name)
         })
     end
-    return results
+    return out
 end
 
 ------------------------------------------------------------
--- Warning system
+-- Warnings
 ------------------------------------------------------------
 function ae.getWarnings(list)
-    local warnings = {}
-
+    local out = {}
     for _, entry in ipairs(list) do
         local count = ae.getItemCount(entry.name)
         if count <= (entry.threshold or 1) then
-            table.insert(warnings, {
+            table.insert(out, {
                 name      = entry.name,
                 label     = entry.label or entry.name,
                 count     = count,
@@ -115,25 +77,22 @@ function ae.getWarnings(list)
             })
         end
     end
-
-    return warnings
+    return out
 end
 
 ------------------------------------------------------------
--- Crafting jobs
+-- Crafting jobs (unchanged)
 ------------------------------------------------------------
 function ae.getCraftingJobs()
-    if type(me.getCraftingCPUs) ~= "function" then
-        return {}
-    end
+    if type(me.getCraftingCPUs) ~= "function" then return {} end
 
     local cpus = me.getCraftingCPUs()
-    local jobs = {}
+    local out = {}
 
     for _, cpu in ipairs(cpus) do
         if cpu.busy and cpu.craftingJob then
             local job = cpu.craftingJob
-            table.insert(jobs, {
+            table.insert(out, {
                 name     = job.output.name or "Unknown",
                 label    = job.output.label or job.output.name or "Unknown",
                 amount   = job.output.amount or 1,
@@ -142,7 +101,7 @@ function ae.getCraftingJobs()
         end
     end
 
-    return jobs
+    return out
 end
 
 ------------------------------------------------------------
