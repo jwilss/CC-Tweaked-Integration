@@ -46,7 +46,7 @@ function Storage.collect()
     result.available = true
 
     -- ── Items ────────────────────────────────────────────────
-    local items = Utils.safeCall(bridge, "listItems") or {}
+    local items = Utils.safeCall(bridge, "getItems") or {}
     result.totalTypes = #items
 
     for _, entry in ipairs(items) do
@@ -65,7 +65,7 @@ function Storage.collect()
     end
 
     -- ── Fluids ───────────────────────────────────────────────
-    local fluids = Utils.safeCall(bridge, "listFluids") or {}
+    local fluids = Utils.safeCall(bridge, "getFluids") or {}
     for _, f in ipairs(fluids) do
         table.insert(result.fluid, {
             name   = f.displayName or f.name or "Unknown",
