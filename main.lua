@@ -23,12 +23,11 @@ local monitor = findMonitor()
 ui.init(monitor, config)
 
 ------------------------------------------------------------
--- Main Render Loop
+-- Main Render Function
 ------------------------------------------------------------
 local function render()
-    monitor.setBackgroundColor(colors.black)
+    -- Do NOT clear every frame to avoid flicker; ui.init() already did a full clear.
     monitor.setTextColor(config.ui.textColor)
-    monitor.clear()
 
     local w, h = monitor.getSize()
     local y = 1
@@ -47,9 +46,9 @@ local function render()
     --------------------------------------------------------
     -- ITEMS SECTION
     --------------------------------------------------------
-    y = ui.section(config.sections.items, y)
-
     local dashboardData = ae.getDashboardData(config)
+
+    y = ui.section(config.sections.items, y)
     y = ui.drawItemList(dashboardData.items, y)
 
     --------------------------------------------------------
