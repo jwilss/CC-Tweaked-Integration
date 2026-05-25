@@ -1,166 +1,53 @@
 --========================================================--
---  ui.lua  |  Dashboard UI Rendering Engine
+--  ui.lua  |  Dashboard UI Rendering Module
 --========================================================--
 
 local ui = {}
+local monitor
+local config
 
 ------------------------------------------------------------
--- Initialize Monitor
+-- Initialize UI
 ------------------------------------------------------------
-function ui.init(monitor, config)
-    ui.m = monitor
-    ui.cfg = config
+function ui.init(mon, cfg)
+    monitor = mon
+    config = cfg
 
-    ui.m.setTextScale(config.ui.textScale or 0.5)
-    ui.m.setBackgroundColor(colors.black)
-    ui.m.setTextColor(config.ui.textColor)
-    ui.m.clear()
+    monitor.setBackgroundColor(config.ui.backgroundColor)
+    monitor.setTextColor(config.ui.textColor)
+    monitor.clear()
+    monitor.setCursorPos(1, 1)
+
+    if config.ui.scale then
+        monitor.setTextScale(config.ui.scale)
+    end
 end
 
 ------------------------------------------------------------
--- Helpers
-------------------------------------------------------------
-
-local function centerText(m, y, text)
-    local w, _ = m.getSize()
-    local x = math.floor((w - #text) / 2) + 1
-    m.setCursorPos(x, y)
-    m.write(text)
-end
-
-local function drawLine(m, y, char)
-    local w, _ = m.getSize()
-    m.setCursorPos(1, y)
-    m.write(string.rep(char, w))
-end
-
-------------------------------------------------------------
--- Section Header
+-- Draw a section header
 ------------------------------------------------------------
 function ui.section(title, y)
-    local m = ui.m
-    m.setBackgroundColor(colors.black)
-    m.setTextColor(ui.cfg.ui.titleColor)
+    local w, _ = monitor.getSize()
 
-    centerText(m, y, title)
+    monitor.setCursorPos(1, y)
+    monitor.setBackgroundColor(config.ui.sectionBackground)
+    monitor.setTextColor(config.ui.sectionText)
+    monitor.write(string.rep(" ", w))
 
-    m.setTextColor(ui.cfg.ui.textColor)
-    return y + 2
+    monitor.setCursorPos(2, y)
+    monitor.write(title)
+
+    monitor.setBackgroundColor(config.ui.backgroundColor)
+    monitor.setTextColor(config.ui.textColor)
+
+    return y + 1
 end
 
 ------------------------------------------------------------
--- Draw a horizontal bar (power, crafting, etc.)
+-- Draw power bar
 ------------------------------------------------------------
-function ui.bar(x, y, width, percent)
-    local m = ui.m
+function ui.drawPower(percent, stored, cap, y)
+    local w, _ = monitor.getSize()
 
-    -- Background
-    m.setBackgroundColor(ui.cfg.ui.barBackground)
-    m.setCursorPos(x, y)
-    m.write(string.rep(" ", width))
-
-    -- Determine fill color
-    local fillColor = ui.cfg.ui.barFill
-    if percent < 30 then
-        fillColor = ui.cfg.ui.barFillLow
-    elseif percent < 60 then
-        fillColor = ui.cfg.ui.barFillMid
-    end
-
-    -- Fill
-    local fill = math.floor((percent / 100) * width)
-    m.setBackgroundColor(fillColor)
-    m.setCursorPos(x, y)
-    m.write(string.rep(" ", fill))
-
-    -- Reset
-    m.setBackgroundColor(colors.black)
-end
-
-------------------------------------------------------------
--- Draw Item List
-------------------------------------------------------------
-function ui.drawItemList(items, startY)
-    local m = ui.m
-    local y = startY
-
-    for _, item in ipairs(items) do
-        m.setCursorPos(2, y)
-        m.write(string.format("%-20s %s", item.label .. ":", item.count))
-        y = y + 1
-    end
-
-    return y + ui.cfg.ui.sectionSpacing
-end
-
-------------------------------------------------------------
--- Draw Warning List
-------------------------------------------------------------
-function ui.drawWarnings(warnings, startY)
-    local m = ui.m
-    local y = startY
-
-    for _, w in ipairs(warnings) do
-        m.setTextColor(ui.cfg.ui.warningColor)
-        m.setCursorPos(2, y)
-        m.write("⚠ " .. w.label .. " LOW (" .. w.count .. ")")
-        y = y + 1
-    end
-
-    m.setTextColor(ui.cfg.ui.textColor)
-    return y + ui.cfg.ui.sectionSpacing
-end
-
-------------------------------------------------------------
--- Draw Crafting Jobs
-------------------------------------------------------------
-function ui.drawCrafting(jobs, startY)
-    local m = ui.m
-    local y = startY
-
-    for _, job in ipairs(jobs) do
-        m.setCursorPos(2, y)
-        m.write(job.label .. " (" .. job.amount .. ")")
-        y = y + 1
-
-        ui.bar(2, y, 30, job.progress)
-        y = y + 2
-    end
-
-    return y + ui.cfg.ui.sectionSpacing
-end
-
-------------------------------------------------------------
--- Draw Power Section
-------------------------------------------------------------
-function ui.drawPower(percent, stored, capacity, startY)
-    local m = ui.m
-    local y = startY
-
-    -- Power bar
-    ui.bar(2, y, 40, percent)
-    y = y + 2
-
-    -- Text
-    m.setCursorPos(2, y)
-    m.write(string.format("%s / %s RF",
-        ui.formatNumber(stored),
-        ui.formatNumber(capacity)
-    ))
-
-    return y + ui.cfg.ui.sectionSpacing + 1
-end
-
-------------------------------------------------------------
--- Number Formatter (1,234,567)
-------------------------------------------------------------
-function ui.formatNumber(n)
-    local s = tostring(n)
-    local formatted = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
-    if formatted:sub(1,1) == "," then
-        formatted = formatted:sub(2)
-    end
-    return formatted
-end
-
-return ui
+    -- Bar width
+    local barWidth
