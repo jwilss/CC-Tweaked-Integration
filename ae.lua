@@ -15,8 +15,7 @@ function ae.listItems()
         table.insert(out, {
             name        = it.name,
             displayName = it.displayName or it.name,
-            amount      = it.amount or 0,
-            tags        = it.tags or {}
+            amount      = it.amount or 0
         })
     end
 
