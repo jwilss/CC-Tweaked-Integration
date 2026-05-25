@@ -1,22 +1,45 @@
 --========================================================--
---  config.lua  |  Dashboard Configuration
+--  config.lua  |  Styled Dashboard Configuration
 --========================================================--
 
 local config = {}
 
 ------------------------------------------------------------
--- UI Settings
+-- UI Theme
 ------------------------------------------------------------
 config.ui = {
-    backgroundColor = colors.black,
-    textColor = colors.white,
-    sectionBackground = colors.gray,
-    sectionText = colors.black,
-    scale = 0.5
+    scale = 0.5,
+
+    -- Main colours
+    background = colors.black,
+    text       = colors.white,
+
+    -- Section headers
+    sectionBg  = colors.blue,
+    sectionText = colors.white,
+
+    -- Warning colours
+    warnBg     = colors.red,
+    warnText   = colors.white,
+
+    -- Boot screen
+    bootBg     = colors.black,
+    bootText   = colors.cyan,
+    bootDelay  = 0.05
 }
 
 ------------------------------------------------------------
--- Update interval (seconds)
+-- Section Titles
+------------------------------------------------------------
+config.sections = {
+    power    = "⚡ POWER STATUS",
+    items    = "📦 STORAGE ITEMS",
+    warnings = "⚠ WARNINGS",
+    crafting = "🛠 CRAFTING JOBS"
+}
+
+------------------------------------------------------------
+-- Update Interval
 ------------------------------------------------------------
 config.updateInterval = 1
 
@@ -35,16 +58,6 @@ config.trackedItems = {
 config.warningItems = {
     { name = "minecraft:diamond", label = "Diamonds", threshold = 2 },
     { name = "minecraft:iron_ingot", label = "Iron", threshold = 64 },
-}
-
-------------------------------------------------------------
--- Section Titles
-------------------------------------------------------------
-config.sections = {
-    power = "POWER",
-    items = "ITEMS",
-    warnings = "WARNINGS",
-    crafting = "CRAFTING"
 }
 
 return config
