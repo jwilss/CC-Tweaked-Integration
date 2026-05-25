@@ -1,63 +1,80 @@
 --========================================================--
---  config.lua  |  Styled Dashboard Configuration
+--  config.lua  |  BAER Industrial Configuration
 --========================================================--
 
 local config = {}
 
 ------------------------------------------------------------
--- UI Theme
+-- UI Theme (Industrial)
 ------------------------------------------------------------
 config.ui = {
-    scale = 0.5,
+    scale            = 0.5,
 
-    -- Main colours
-    background = colors.black,
-    text       = colors.white,
+    backgroundColor  = colors.black,
+    textColor        = colors.white,
 
-    -- Section headers
-    sectionBg  = colors.blue,
-    sectionText = colors.white,
+    sectionBackground = colors.yellow,
+    sectionText       = colors.black,
 
-    -- Warning colours
-    warnBg     = colors.red,
-    warnText   = colors.white,
+    warnBackground   = colors.red,
+    warnText         = colors.white,
 
-    -- Boot screen
-    bootBg     = colors.black,
-    bootText   = colors.cyan,
-    bootDelay  = 0.05
+    bootBackground   = colors.black,
+    bootText         = colors.yellow,
+    bootDelay        = 0.03,
+
+    warnPulseSpeed   = 0.5
 }
 
 ------------------------------------------------------------
 -- Section Titles
 ------------------------------------------------------------
 config.sections = {
-    power    = "⚡ POWER STATUS",
-    items    = "📦 STORAGE ITEMS",
-    warnings = "⚠ WARNINGS",
-    crafting = "🛠 CRAFTING JOBS"
+    power    = "[⚡ POWER STATUS]",
+    items    = "[📦 STORAGE ITEMS]",
+    warnings = "[⚠ WARNINGS]",
+    crafting = "[🛠 CRAFTING JOBS]"
 }
 
 ------------------------------------------------------------
 -- Update Interval
 ------------------------------------------------------------
-config.updateInterval = 1
+config.updateInterval = 1.0
 
 ------------------------------------------------------------
 -- Tracked Items
 ------------------------------------------------------------
 config.trackedItems = {
-    { name = "minecraft:diamond", label = "Diamonds" },
-    { name = "minecraft:iron_ingot", label = "Iron" },
-    { name = "minecraft:gold_ingot", label = "Gold" },
+    { name = "minecraft:netherite_upgrade_smithing_template", label = "Netherite Template" },
+    { name = "allthemodium:allthemodium_upgrade_smithing_template", label = "Allthemodium Template" },
+    { name = "allthemodium:vibranium_upgrade_smithing_template",   label = "Vibranium Template" },
+    { name = "allthemodium:unobtainium_upgrade_smithing_template", label = "Unobtainium Template" },
 }
 
 ------------------------------------------------------------
 -- Warning Items
 ------------------------------------------------------------
 config.warningItems = {
-    { name = "minecraft:diamond", label = "Diamonds", threshold = 2 },
-    { name = "minecraft:iron_ingot", label = "Iron", threshold = 64 },
+    {
+        name      = "minecraft:netherite_upgrade_smithing_template",
+        label     = "Netherite Template",
+        threshold = 1
+    },
+    {
+        name      = "allthemodium:allthemodium_upgrade_smithing_template",
+        label     = "Allthemodium Template",
+        threshold = 1
+    },
+    {
+        name      = "allthemodium:vibranium_upgrade_smithing_template",
+        label     = "Vibranium Template",
+        threshold = 1
+    },
+    {
+        name      = "allthemodium:unobtainium_upgrade_smithing_template",
+        label     = "Unobtainium Template",
+        threshold = 1
+    }
 }
 
 return config
