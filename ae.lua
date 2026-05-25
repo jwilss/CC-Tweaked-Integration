@@ -5,14 +5,21 @@
 local ae = {}
 
 ------------------------------------------------------------
--- Locate ME Bridge
+-- Locate ME Bridge (supports all naming variants)
 ------------------------------------------------------------
 local function findMEBridge()
     for _, name in ipairs(peripheral.getNames()) do
-        if peripheral.hasType(name, "meBridge") then
+        local pType = peripheral.getType(name)
+
+        -- Support all known AP ME Bridge identifiers
+        if pType == "meBridge"
+        or pType == "me_bridge"
+        or pType == "advancedperipherals:me_bridge"
+        or pType == "advancedperipherals:mebridge" then
             return peripheral.wrap(name)
         end
     end
+
     error("ERROR: No ME Bridge found. Ensure Advanced Peripherals ME Bridge is connected.")
 end
 
@@ -79,10 +86,10 @@ end
 ------------------------------------------------------------
 
 function ae.getCraftingJobs()
-    local jobs = me.getCraftingCPUs()
+    local cpus = me.getCraftingCPUs()
     local results = {}
 
-    for _, cpu in ipairs(jobs) do
+    for _, cpu in ipairs(cpus) do
         if cpu.busy then
             local job = cpu.craftingJob
             if job then
@@ -100,7 +107,7 @@ function ae.getCraftingJobs()
 end
 
 ------------------------------------------------------------
--- Combined Data Fetch
+-- Combined Dashboard Data
 ------------------------------------------------------------
 
 function ae.getDashboardData(config)
