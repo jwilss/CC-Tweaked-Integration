@@ -1,10 +1,13 @@
 --========================================================--
---  ui.lua  |  Styled Dashboard UI
+--  ui.lua  |  BAER Industrial Dashboard UI
 --========================================================--
 
 local ui = {}
 local monitor
 local cfg
+
+local pulsePhase = 1
+local lastPulseTime = 0
 
 ------------------------------------------------------------
 -- Init
@@ -14,88 +17,125 @@ function ui.init(mon, config)
     cfg = config
 
     monitor.setTextScale(cfg.ui.scale)
-    monitor.setBackgroundColor(cfg.ui.background)
-    monitor.setTextColor(cfg.ui.text)
+    monitor.setBackgroundColor(cfg.ui.backgroundColor)
+    monitor.setTextColor(cfg.ui.textColor)
     monitor.clear()
 end
 
 ------------------------------------------------------------
--- Boot Animation
+-- Centered write helper
+------------------------------------------------------------
+local function writeCentered(y, text)
+    local w = select(1, monitor.getSize())
+    local x = math.floor((w - #text) / 2) + 1
+    monitor.setCursorPos(x, y)
+    monitor.write(text)
+end
+
+------------------------------------------------------------
+-- Boot Screen (Big Industrial BAER)
 ------------------------------------------------------------
 function ui.bootScreen()
     local w, h = monitor.getSize()
-    monitor.setBackgroundColor(cfg.ui.bootBg)
+    monitor.setBackgroundColor(cfg.ui.bootBackground)
     monitor.setTextColor(cfg.ui.bootText)
     monitor.clear()
 
     local logo = {
-        " ██████╗  █████╗ ███████╗██████╗ ",
-        " ██╔══██╗██╔══██╗██╔════╝██╔══██╗",
-        " ██████╔╝███████║█████╗  ██████╔╝",
-        " ██╔══██╗██╔══██║██╔══╝  ██╔══██╗",
-        " ██████╔╝██║  ██║███████╗██║  ██║",
-        " ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝",
-        " Big Applied Energistics Readout "
+        "   ██████╗  █████╗ ███████╗██████╗   ",
+        "   ██╔══██╗██╔══██╗██╔════╝██╔══██╗  ",
+        "   ██████╔╝███████║█████╗  ██████╔╝  ",
+        "   ██╔══██╗██╔══██║██╔══╝  ██╔══██╗  ",
+        "   ██████╔╝██║  ██║███████╗██║  ██║  ",
+        "   ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝  ",
+        "                                      ",
+        "   BIG APPLIED ENERGETICS READOUT     ",
+        "              (BAER)                  "
     }
 
-    local startY = math.floor((h - #logo) / 2)
+    local top = math.floor((h - #logo) / 2)
+
+    writeCentered(top - 2, string.rep("=", math.min(w - 2, 60)))
 
     for i, line in ipairs(logo) do
-        monitor.setCursorPos(math.floor((w - #line) / 2), startY + i)
-        monitor.write(line)
+        writeCentered(top - 1 + i, line)
         sleep(cfg.ui.bootDelay)
     end
 
-    sleep(0.5)
+    writeCentered(top + #logo + 1, string.rep("=", math.min(w - 2, 60)))
+    sleep(0.4)
+
+    local checks = {
+        "[ OK ] Peripheral Scan",
+        "[ OK ] ME Bridge Online",
+        "[ OK ] Powah Link Established",
+        "[ OK ] Storage Index Loaded",
+        "[ OK ] Dashboard Renderer Ready",
+        "",
+        "BAER SYSTEM ONLINE"
+    }
+
+    local y = top + #logo + 3
+    for _, line in ipairs(checks) do
+        writeCentered(y, line)
+        y = y + 1
+        sleep(0.2)
+    end
+
+    sleep(0.8)
+    monitor.setBackgroundColor(cfg.ui.backgroundColor)
+    monitor.setTextColor(cfg.ui.textColor)
     monitor.clear()
 end
 
 ------------------------------------------------------------
--- Section Header
+-- Section Header (Industrial Hazard Style)
 ------------------------------------------------------------
 function ui.section(title, y)
     local w = select(1, monitor.getSize())
 
-    monitor.setBackgroundColor(cfg.ui.sectionBg)
+    monitor.setBackgroundColor(cfg.ui.sectionBackground)
     monitor.setTextColor(cfg.ui.sectionText)
 
     monitor.setCursorPos(1, y)
-    monitor.write(string.rep(" ", w))
+    local line = title .. string.rep("=", math.max(0, w - #title))
+    monitor.write(line:sub(1, w))
 
-    monitor.setCursorPos(2, y)
-    monitor.write(title)
-
-    monitor.setBackgroundColor(cfg.ui.background)
-    monitor.setTextColor(cfg.ui.text)
+    monitor.setBackgroundColor(cfg.ui.backgroundColor)
+    monitor.setTextColor(cfg.ui.textColor)
 
     return y + 1
 end
 
 ------------------------------------------------------------
--- Power Bar
+-- Power Section
 ------------------------------------------------------------
 function ui.drawPower(percent, stored, cap, y)
     local w = select(1, monitor.getSize())
-    local barWidth = w - 2
-    local filled = math.floor(barWidth * (percent / 100))
+    local barWidth = math.max(10, w - 2)
 
     monitor.setCursorPos(1, y)
-    monitor.write("Power: " .. percent .. "%")
+    monitor.setTextColor(colors.yellow)
+    monitor.write(string.format("Power: %3d%%", percent or 0))
     y = y + 1
 
     monitor.setCursorPos(1, y)
     monitor.setBackgroundColor(colors.gray)
     monitor.write(string.rep(" ", barWidth))
 
+    local pct = math.max(0, math.min(100, percent or 0))
+    local filled = math.floor(barWidth * (pct / 100))
+
     monitor.setCursorPos(1, y)
-    monitor.setBackgroundColor(colors.lime)
+    monitor.setBackgroundColor(colors.yellow)
     monitor.write(string.rep(" ", filled))
 
-    monitor.setBackgroundColor(cfg.ui.background)
+    monitor.setBackgroundColor(cfg.ui.backgroundColor)
     y = y + 1
 
     monitor.setCursorPos(1, y)
-    monitor.write(stored .. " / " .. cap .. " RF")
+    monitor.setTextColor(cfg.ui.textColor)
+    monitor.write(string.format("%d / %d RF", stored or 0, cap or 0))
     y = y + 1
 
     return y
@@ -105,23 +145,33 @@ end
 -- Item List
 ------------------------------------------------------------
 function ui.drawItemList(items, y)
+    monitor.setTextColor(cfg.ui.textColor)
     for _, item in ipairs(items) do
         monitor.setCursorPos(1, y)
-        monitor.write(item.label .. ": " .. item.count)
+        monitor.write(string.format("%-20s %d", item.label, item.count))
         y = y + 1
     end
     return y
 end
 
 ------------------------------------------------------------
--- Warning Bar (clean + auto-clear)
+-- Pulsing Warning Banner
 ------------------------------------------------------------
+local function updatePulse()
+    local t = os.clock()
+    if t - lastPulseTime >= (cfg.ui.warnPulseSpeed or 0.5) then
+        lastPulseTime = t
+        pulsePhase = (pulsePhase % 3) + 1
+    end
+end
+
 function ui.drawWarnings(warnings, y)
     local w = select(1, monitor.getSize())
+    updatePulse()
 
-    -- Clear area
-    for i = 0, 3 do
+    for i = 0, 2 do
         monitor.setCursorPos(1, y + i)
+        monitor.setBackgroundColor(cfg.ui.backgroundColor)
         monitor.write(string.rep(" ", w))
     end
 
@@ -130,30 +180,49 @@ function ui.drawWarnings(warnings, y)
     end
 
     local wItem = warnings[1]
+    local msg = string.format("⚠ %s LOW — %d REMAINING", wItem.label, wItem.count)
+
+    local bg, fg
+    if pulsePhase == 1 then
+        bg, fg = cfg.ui.warnBackground, cfg.ui.warnText
+    elseif pulsePhase == 2 then
+        bg, fg = colors.black, cfg.ui.warnBackground
+    else
+        bg, fg = colors.red, colors.white
+    end
 
     monitor.setCursorPos(1, y)
-    monitor.setBackgroundColor(cfg.ui.warnBg)
-    monitor.setTextColor(cfg.ui.warnText)
-    monitor.write("⚠ " .. wItem.label .. " LOW (" .. wItem.count .. ")")
+    monitor.setBackgroundColor(bg)
+    monitor.setTextColor(fg)
+    monitor.write(string.rep("█", w))
 
-    monitor.setBackgroundColor(cfg.ui.background)
-    monitor.setTextColor(cfg.ui.text)
+    monitor.setCursorPos(1, y + 1)
+    local line = " " .. msg .. " "
+    monitor.write(line .. string.rep(" ", math.max(0, w - #line)))
 
-    return y + 1
+    monitor.setCursorPos(1, y + 2)
+    monitor.write(string.rep("█", w))
+
+    monitor.setBackgroundColor(cfg.ui.backgroundColor)
+    monitor.setTextColor(cfg.ui.textColor)
+
+    return y + 3
 end
 
 ------------------------------------------------------------
 -- Crafting Jobs
 ------------------------------------------------------------
 function ui.drawCrafting(jobs, y)
+    local w = select(1, monitor.getSize())
     for _, job in ipairs(jobs) do
         monitor.setCursorPos(1, y)
-        monitor.write("Crafting: " .. job.label .. " (" .. job.amount .. ")")
+        monitor.setTextColor(colors.orange)
+        monitor.write(string.format("Crafting: %s (%d)", job.label, job.amount))
         y = y + 1
 
-        local w = select(1, monitor.getSize())
-        local barWidth = w - 2
-        local filled = math.floor(barWidth * (job.progress / 100))
+        local barWidth = math.max(10, w - 2)
+        local pct = math.max(0, math.min(100, job.progress or 0))
+        local filled = math.floor(barWidth * (pct / 100))
 
         monitor.setCursorPos(1, y)
         monitor.setBackgroundColor(colors.gray)
@@ -163,10 +232,11 @@ function ui.drawCrafting(jobs, y)
         monitor.setBackgroundColor(colors.orange)
         monitor.write(string.rep(" ", filled))
 
-        monitor.setBackgroundColor(cfg.ui.background)
+        monitor.setBackgroundColor(cfg.ui.backgroundColor)
         y = y + 1
     end
 
+    monitor.setTextColor(cfg.ui.textColor)
     return y
 end
 
