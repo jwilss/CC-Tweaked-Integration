@@ -1,5 +1,5 @@
 --========================================================--
---  ae.lua  |  Unified AE2 Item, Warning & Crafting Module
+--  ae.lua  |  Universal AE2 Module (getItems compatible)
 --========================================================--
 
 local ae = {}
@@ -9,113 +9,86 @@ local ae = {}
 ------------------------------------------------------------
 local function findMEBridge()
     for _, name in ipairs(peripheral.getNames()) do
-        local pType = peripheral.getType(name)
-
-        -- Support all known AP ME Bridge identifiers
-        if pType == "meBridge"
-        or pType == "me_bridge"
-        or pType == "advancedperipherals:me_bridge"
-        or pType == "advancedperipherals:mebridge" then
+        local t = peripheral.getType(name)
+        if t == "meBridge"
+        or t == "me_bridge"
+        or t == "advancedperipherals:me_bridge"
+        or t == "advancedperipherals:mebridge" then
             return peripheral.wrap(name)
         end
     end
-
-    error("ERROR: No ME Bridge found. Ensure Advanced Peripherals ME Bridge is connected.")
+    error("ERROR: No ME Bridge found.")
 end
 
 local me = findMEBridge()
 
 ------------------------------------------------------------
--- Item Count Helpers
+-- Detect which item API is available
 ------------------------------------------------------------
+local HAS_GET_ITEMS   = type(me.getItems)   == "function"
+local HAS_LIST_ITEMS  = type(me.listItems)  == "function"
+local HAS_GET_ITEM    = type(me.getItem)    == "function"
 
--- Get count of a single item
-function ae.getItemCount(itemName)
-    local item = me.getItem({ name = itemName })
-    if item and item.amount then
-        return item.amount
+------------------------------------------------------------
+-- Internal: fetch all items from ME system
+------------------------------------------------------------
+local function fetchAllItems()
+    if HAS_GET_ITEMS then
+        return me.getItems() or {}
+    elseif HAS_LIST_ITEMS then
+        return me.listItems() or {}
+    else
+        return {}
     end
+end
+
+------------------------------------------------------------
+-- Get count of a single item
+------------------------------------------------------------
+function ae.getItemCount(name)
+    -- Fast path: getItems()
+    if HAS_GET_ITEMS then
+        local all = me.getItems()
+        if not all then return 0 end
+
+        for _, item in pairs(all) do
+            if item.name == name then
+                return item.amount or 0
+            end
+        end
+
+        return 0
+    end
+
+    -- Fallback: listItems()
+    if HAS_LIST_ITEMS then
+        local all = me.listItems()
+        if not all then return 0 end
+
+        for _, item in pairs(all) do
+            if item.name == name then
+                return item.amount or 0
+            end
+        end
+
+        return 0
+    end
+
+    -- Last resort: getItem()
+    if HAS_GET_ITEM then
+        local item = me.getItem({ name = name })
+        return (item and item.amount) or 0
+    end
+
     return 0
 end
 
--- Get counts for a list of items
+------------------------------------------------------------
+-- Build tracked item list
+------------------------------------------------------------
 function ae.getItemList(list)
     local results = {}
     for _, entry in ipairs(list) do
-        local name = entry.name
-        local label = entry.label or name
-        local count = ae.getItemCount(name)
-
         table.insert(results, {
-            name = name,
-            label = label,
-            count = count
-        })
-    end
-    return results
-end
-
-------------------------------------------------------------
--- Warning System (Smithing Templates)
-------------------------------------------------------------
-
-function ae.getWarnings(warningList)
-    local warnings = {}
-
-    for _, entry in ipairs(warningList) do
-        local name = entry.name
-        local label = entry.label or name
-        local threshold = entry.threshold or 1
-
-        local count = ae.getItemCount(name)
-        if count <= threshold then
-            table.insert(warnings, {
-                name = name,
-                label = label,
-                count = count,
-                threshold = threshold
-            })
-        end
-    end
-
-    return warnings
-end
-
-------------------------------------------------------------
--- Crafting Job Monitor
-------------------------------------------------------------
-
-function ae.getCraftingJobs()
-    local cpus = me.getCraftingCPUs()
-    local results = {}
-
-    for _, cpu in ipairs(cpus) do
-        if cpu.busy then
-            local job = cpu.craftingJob
-            if job then
-                table.insert(results, {
-                    name = job.output.name or "Unknown",
-                    label = job.output.label or job.output.name or "Unknown",
-                    amount = job.output.amount or 1,
-                    progress = job.progress or 0
-                })
-            end
-        end
-    end
-
-    return results
-end
-
-------------------------------------------------------------
--- Combined Dashboard Data
-------------------------------------------------------------
-
-function ae.getDashboardData(config)
-    return {
-        items = ae.getItemList(config.trackedItems),
-        warnings = ae.getWarnings(config.warningItems),
-        crafting = ae.getCraftingJobs()
-    }
-end
-
-return ae
+            name  = entry.name,
+            label
