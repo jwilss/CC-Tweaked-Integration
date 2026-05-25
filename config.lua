@@ -1,3 +1,5 @@
+local config = {}
+
 config.items = {
     industrial_foregoing = {
         latex   = { "industrialforegoing:latex_bucket" },
@@ -16,3 +18,5 @@ config.items = {
         skulls    = { "minecraft:wither_skeleton_skull" }
     }
 }
+
+return config
