@@ -1,5 +1,5 @@
 --========================================================--
---  ui.lua  |  3‑Column Gems + Raw + Ingots (final, no flicker)
+--  ui.lua  |  Gems (Vanilla + AllTheOres) + Raw + Ingots
 --========================================================--
 
 local ui = {}
@@ -18,15 +18,17 @@ function ui.init(m)
 end
 
 ------------------------------------------------------------
--- Helpers
+-- Gem filters
 ------------------------------------------------------------
-local GEM_WHITELIST = {
+local VANILLA_GEMS = {
     "diamond",
     "emerald",
     "lapis_lazuli",
-    "redstone",
     "quartz",
-    "amethyst",
+    "redstone"
+}
+
+local ATO_GEMS = {
     "ruby",
     "sapphire",
     "topaz",
@@ -43,14 +45,34 @@ local GEM_WHITELIST = {
 
 local function isGem(id)
     if not id then return false end
-    for _, g in ipairs(GEM_WHITELIST) do
-        if id:match(":" .. g .. "$") then
-            return true
+
+    -- 1. Vanilla gems (minecraft:)
+    if id:match("^minecraft:") then
+        for _, g in ipairs(VANILLA_GEMS) do
+            if id:match(":" .. g .. "$") then
+                return true
+            end
         end
+        return false
     end
+
+    -- 2. AllTheOres gems (alltheores:)
+    if id:match("^alltheores:") then
+        for _, g in ipairs(ATO_GEMS) do
+            if id:match(":" .. g .. "$") then
+                return true
+            end
+        end
+        return false
+    end
+
+    -- 3. Everything else is not a gem
     return false
 end
 
+------------------------------------------------------------
+-- Collectors
+------------------------------------------------------------
 local function collectGems()
     local items = ae.listItems()
     local out = {}
@@ -104,7 +126,7 @@ function ui.draw()
     local col2 = col1 + colWidth
     local col3 = col2 + colWidth
 
-    -- Build full-frame buffer
+    -- Full-frame buffer
     local buffer = {}
     for y = 1, h do
         buffer[y] = string.rep(" ", w)
@@ -114,13 +136,16 @@ function ui.draw()
     -- ENERGY BAR
     --------------------------------------------------------
     local energyLine = "[ ENERGY ] Stored: N/A   Capacity: N/A"
+    if #energyLine > w then
+        energyLine = energyLine:sub(1, w)
+    end
     buffer[1] = energyLine .. string.rep(" ", w - #energyLine)
 
     --------------------------------------------------------
     -- Collect data
     --------------------------------------------------------
-    local gems = collectGems()
-    local raw = collectRaw()
+    local gems   = collectGems()
+    local raw    = collectRaw()
     local ingots = collectIngots()
 
     --------------------------------------------------------
@@ -130,7 +155,9 @@ function ui.draw()
         local y = 3
 
         -- Title
-        local t = title .. string.rep(" ", colWidth - #title)
+        local t = title
+        if #t > colWidth then t = t:sub(1, colWidth) end
+        t = t .. string.rep(" ", colWidth - #t)
         buffer[y] = buffer[y]:sub(1, startX - 1) .. t .. buffer[y]:sub(startX + #t)
         y = y + 2
 
@@ -150,8 +177,8 @@ function ui.draw()
     --------------------------------------------------------
     -- Draw columns
     --------------------------------------------------------
-    writeColumn(col1, "[ GEMS ]", gems)
-    writeColumn(col2, "[ RAW ]", raw)
+    writeColumn(col1, "[ GEMS ]",   gems)
+    writeColumn(col2, "[ RAW ]",    raw)
     writeColumn(col3, "[ INGOTS ]", ingots)
 
     --------------------------------------------------------
