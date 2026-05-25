@@ -1,10 +1,10 @@
 --========================================================--
---  main.lua  |  ATM10 Base Entrance Dashboard
+--  main.lua  |  BAER - Big Applied Energistics Readout
 --========================================================--
 
-local ae = require("ae")
-local power = require("power")
-local ui = require("ui")
+local ae     = require("ae")
+local power  = require("power")
+local ui     = require("ui")
 local config = require("config")
 
 ------------------------------------------------------------
@@ -21,27 +21,29 @@ end
 
 local monitor = findMonitor()
 ui.init(monitor, config)
+ui.bootScreen()
 
 ------------------------------------------------------------
 -- Main Render Function
 ------------------------------------------------------------
 local function render()
-    -- Do NOT clear every frame to avoid flicker; ui.init() already did a full clear.
-    monitor.setTextColor(config.ui.textColor)
-
     local w, h = monitor.getSize()
     local y = 1
+
+    monitor.setBackgroundColor(config.ui.backgroundColor)
+    monitor.setTextColor(config.ui.textColor)
 
     --------------------------------------------------------
     -- POWER SECTION
     --------------------------------------------------------
     y = ui.section(config.sections.power, y)
 
-    local pct = power.getPercent()
+    local pct    = power.getPercent()
     local stored = power.getTotalEnergy()
-    local cap = power.getTotalCapacity()
+    local cap    = power.getTotalCapacity()
 
     y = ui.drawPower(pct, stored, cap, y)
+    y = y + 1
 
     --------------------------------------------------------
     -- ITEMS SECTION
@@ -50,6 +52,7 @@ local function render()
 
     y = ui.section(config.sections.items, y)
     y = ui.drawItemList(dashboardData.items, y)
+    y = y + 1
 
     --------------------------------------------------------
     -- WARNINGS SECTION
@@ -57,6 +60,7 @@ local function render()
     if #dashboardData.warnings > 0 then
         y = ui.section(config.sections.warnings, y)
         y = ui.drawWarnings(dashboardData.warnings, y)
+        y = y + 1
     end
 
     --------------------------------------------------------
@@ -80,7 +84,7 @@ while true do
         monitor.setCursorPos(1, 1)
         monitor.write("DASHBOARD ERROR:")
         monitor.setCursorPos(1, 2)
-        monitor.write(err)
+        monitor.write(err or "unknown error")
     end
 
     sleep(config.updateInterval or 1.0)
