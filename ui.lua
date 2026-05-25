@@ -171,7 +171,7 @@ function ui.drawWarnings(warnings, y)
     end
 
     local wItem = warnings[1]
-    local msg = string.format("! WARNING: %s LOW — %d REMAINING !", wItem.label, wItem.count)
+    local msg = string.format("! WARNING: %s LOW - %d REMAINING !", wItem.label, wItem.count)
 
     local bg, fg
     if pulsePhase == 1 then
