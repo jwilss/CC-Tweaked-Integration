@@ -5,88 +5,46 @@
 local config = {}
 
 ------------------------------------------------------------
--- Update Rate (seconds)
-------------------------------------------------------------
-config.updateInterval = 1.0   -- How often the dashboard refreshes
-
-------------------------------------------------------------
--- Items to Track (Displayed in the main item list)
-------------------------------------------------------------
-config.trackedItems = {
-    {
-        name = "allthemodium:unobtainium_ingot",
-        label = "Unobtainium Ingots"
-    },
-    {
-        name = "allthemodium:vibranium_ingot",
-        label = "Vibranium Ingots"
-    },
-    {
-        name = "allthemodium:allthemodium_ingot",
-        label = "Allthemodium Ingots"
-    },
-    {
-        name = "minecraft:netherite_ingot",
-        label = "Netherite Ingots"
-    },
-    {
-        name = "minecraft:diamond",
-        label = "Diamonds"
-    }
-}
-
-------------------------------------------------------------
--- Smithing Template Warnings
--- When count <= threshold, a warning appears
-------------------------------------------------------------
-config.warningItems = {
-    {
-        name = "allthemodium:unobtainium_upgrade_smithing_template",
-        label = "Unobtainium Templates",
-        threshold = 2
-    },
-    {
-        name = "allthemodium:vibranium_upgrade_smithing_template",
-        label = "Vibranium Templates",
-        threshold = 2
-    },
-    {
-        name = "allthemodium:allthemodium_upgrade_smithing_template",
-        label = "Allthemodium Templates",
-        threshold = 2
-    },
-    {
-        name = "minecraft:netherite_upgrade_smithing_template",
-        label = "Netherite Templates",
-        threshold = 2
-    }
-}
-
-------------------------------------------------------------
 -- UI Settings
 ------------------------------------------------------------
-
 config.ui = {
-    titleColor = colors.cyan,
+    backgroundColor = colors.black,
     textColor = colors.white,
-    warningColor = colors.orange,
-    criticalColor = colors.red,
-    barBackground = colors.gray,
-    barFill = colors.green,
-    barFillMid = colors.yellow,
-    barFillLow = colors.red,
-    sectionSpacing = 1,
-    textScale = 0.5
+    sectionBackground = colors.gray,
+    sectionText = colors.black,
+    scale = 0.5
+}
+
+------------------------------------------------------------
+-- Update interval (seconds)
+------------------------------------------------------------
+config.updateInterval = 1
+
+------------------------------------------------------------
+-- Tracked Items
+------------------------------------------------------------
+config.trackedItems = {
+    { name = "minecraft:diamond", label = "Diamonds" },
+    { name = "minecraft:iron_ingot", label = "Iron" },
+    { name = "minecraft:gold_ingot", label = "Gold" },
+}
+
+------------------------------------------------------------
+-- Warning Items
+------------------------------------------------------------
+config.warningItems = {
+    { name = "minecraft:diamond", label = "Diamonds", threshold = 2 },
+    { name = "minecraft:iron_ingot", label = "Iron", threshold = 64 },
 }
 
 ------------------------------------------------------------
 -- Section Titles
 ------------------------------------------------------------
 config.sections = {
-    power = "POWER BANK",
-    items = "MATERIAL STOCKS",
+    power = "POWER",
+    items = "ITEMS",
     warnings = "WARNINGS",
-    crafting = "ACTIVE CRAFTING"
+    crafting = "CRAFTING"
 }
 
 return config
