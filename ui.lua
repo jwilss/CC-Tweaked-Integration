@@ -146,13 +146,13 @@ function ui.draw()
     end
 
     --------------------------------------------------------
-    -- ENERGY BAR (single line)
+    -- ENERGY BAR (ASCII only, one line)
     --------------------------------------------------------
     local stored, max = getEnergyTotals()
     local pct = (max > 0) and math.floor((stored / max) * 100) or 0
 
     local left = string.format(
-        "[ ENERGY ] %s / %s RF (%d%%)  ",
+        "[ ENERGY ] %s / %s RF (%d%%) ",
         stored, max, pct
     )
 
@@ -160,7 +160,7 @@ function ui.draw()
     if barWidth < 10 then barWidth = 10 end
 
     local filled = math.floor((pct / 100) * barWidth)
-    local bar = string.rep("█", filled) .. string.rep("░", barWidth - filled)
+    local bar = string.rep("#", filled) .. string.rep("-", barWidth - filled)
 
     local line = left .. bar
     if #line > w then
