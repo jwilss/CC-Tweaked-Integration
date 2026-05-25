@@ -17,7 +17,7 @@ Config.refreshRate = 2   -- seconds between full redraws
 Config.storage = {
     -- The peripheral name/side for your RS Bridge or AE2 ME Bridge.
     -- To find the exact name: open the CC shell and type peripheral.getNames()
-    bridgeSide = "left",
+    bridgeSide = "rs_bridge_0",
 
     -- Items to highlight on the dashboard
     watchedItems = {
