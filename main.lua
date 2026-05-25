@@ -1,5 +1,4 @@
 local ui = require("ui")
-local cfg = {}
 
 local function findMon()
     for _, n in ipairs(peripheral.getNames()) do
@@ -11,7 +10,7 @@ local function findMon()
 end
 
 local mon = findMon()
-ui.init(mon, cfg)
+ui.init(mon)
 
 while true do
     ui.draw()

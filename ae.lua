@@ -1,10 +1,14 @@
+--========================================================--
+--  ae.lua  |  Minimal ME Bridge wrapper (correct API)
+--========================================================--
+
 local ae = {}
 
 local BRIDGE = "me_bridge_1"
 local bridge = peripheral.wrap(BRIDGE)
 
 function ae.listItems()
-    local raw = bridge.listItems()
+    local raw = bridge.getItems()
     local out = {}
 
     for _, it in pairs(raw) do

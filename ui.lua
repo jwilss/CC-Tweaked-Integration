@@ -4,16 +4,13 @@
 
 local ui = {}
 local mon
-local cfg
 local ae = require("ae")
 
 ------------------------------------------------------------
 -- Init
 ------------------------------------------------------------
-function ui.init(m, c)
+function ui.init(m)
     mon = m
-    cfg = c
-
     mon.setTextScale(0.5)
     mon.setBackgroundColor(colors.black)
     mon.setTextColor(colors.white)
@@ -36,9 +33,6 @@ local function header(text, y)
     return y + 1
 end
 
-------------------------------------------------------------
--- Tag-based AE2 item filter
-------------------------------------------------------------
 local function getTaggedItems(tag)
     local items = ae.listItems()
     local out = {}
