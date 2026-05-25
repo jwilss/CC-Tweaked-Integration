@@ -91,4 +91,69 @@ function ae.getItemList(list)
     for _, entry in ipairs(list) do
         table.insert(results, {
             name  = entry.name,
-            label
+            label = entry.label or entry.name,
+            count = ae.getItemCount(entry.name)
+        })
+    end
+    return results
+end
+
+------------------------------------------------------------
+-- Warning system
+------------------------------------------------------------
+function ae.getWarnings(list)
+    local warnings = {}
+
+    for _, entry in ipairs(list) do
+        local count = ae.getItemCount(entry.name)
+        if count <= (entry.threshold or 1) then
+            table.insert(warnings, {
+                name      = entry.name,
+                label     = entry.label or entry.name,
+                count     = count,
+                threshold = entry.threshold or 1
+            })
+        end
+    end
+
+    return warnings
+end
+
+------------------------------------------------------------
+-- Crafting jobs
+------------------------------------------------------------
+function ae.getCraftingJobs()
+    if type(me.getCraftingCPUs) ~= "function" then
+        return {}
+    end
+
+    local cpus = me.getCraftingCPUs()
+    local jobs = {}
+
+    for _, cpu in ipairs(cpus) do
+        if cpu.busy and cpu.craftingJob then
+            local job = cpu.craftingJob
+            table.insert(jobs, {
+                name     = job.output.name or "Unknown",
+                label    = job.output.label or job.output.name or "Unknown",
+                amount   = job.output.amount or 1,
+                progress = job.progress or 0
+            })
+        end
+    end
+
+    return jobs
+end
+
+------------------------------------------------------------
+-- Combined dashboard data
+------------------------------------------------------------
+function ae.getDashboardData(config)
+    return {
+        items    = ae.getItemList(config.trackedItems),
+        warnings = ae.getWarnings(config.warningItems),
+        crafting = ae.getCraftingJobs()
+    }
+end
+
+return ae
