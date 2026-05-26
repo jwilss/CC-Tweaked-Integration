@@ -1,5 +1,5 @@
 --========================================================--
---  ui.lua  |  Column1: Gems+Raw | Column2: Ingots | Column3: Spawner Drops testtesttewst
+--  ui.lua  |  Full Dashboard: Gems+Raw | Ingots | Player/Server Info
 --========================================================--
 
 local ui = {}
@@ -29,39 +29,23 @@ local VANILLA_GEMS = {
 }
 
 local ATO_GEMS = {
-    "ruby",
-    "sapphire",
-    "topaz",
-    "peridot",
-    "fluorite",
-    "opal",
-    "garnet",
-    "onyx",
-    "aquamarine",
-    "alexandrite",
-    "citrine",
-    "malachite"
+    "ruby","sapphire","topaz","peridot","fluorite","opal",
+    "garnet","onyx","aquamarine","alexandrite","citrine","malachite"
 }
 
 local function isGem(id)
     if not id then return false end
 
-    -- Vanilla gems
     if id:match("^minecraft:") then
         for _, g in ipairs(VANILLA_GEMS) do
-            if id:match(":" .. g .. "$") then
-                return true
-            end
+            if id:match(":" .. g .. "$") then return true end
         end
         return false
     end
 
-    -- AllTheOres gems
     if id:match("^alltheores:") then
         for _, g in ipairs(ATO_GEMS) do
-            if id:match(":" .. g .. "$") then
-                return true
-            end
+            if id:match(":" .. g .. "$") then return true end
         end
         return false
     end
@@ -73,59 +57,97 @@ end
 -- Collectors
 ------------------------------------------------------------
 local function collectGems()
-    local items = ae.listItems()
     local out = {}
-    for _, it in ipairs(items) do
-        if isGem(it.id) then
-            table.insert(out, { name = it.displayName, count = it.amount })
-        end
+    for _, it in ipairs(ae.listItems()) do
+        if isGem(it.id) then table.insert(out, {name=it.displayName,count=it.amount}) end
     end
-    table.sort(out, function(a, b) return a.name < b.name end)
+    table.sort(out, function(a,b) return a.name < b.name end)
     return out
 end
 
 local function collectRaw()
-    local items = ae.listItems()
     local out = {}
-    for _, it in ipairs(items) do
-        if it.id:match("raw_") then
-            table.insert(out, { name = it.displayName, count = it.amount })
-        end
+    for _, it in ipairs(ae.listItems()) do
+        if it.id:match("raw_") then table.insert(out, {name=it.displayName,count=it.amount}) end
     end
-    table.sort(out, function(a, b) return a.name < b.name end)
+    table.sort(out, function(a,b) return a.name < b.name end)
     return out
 end
 
 local function collectIngots()
-    local items = ae.listItems()
     local out = {}
-    for _, it in ipairs(items) do
+    for _, it in ipairs(ae.listItems()) do
         if it.id:match("_ingot$") or it.id:match("ingot_") then
-            table.insert(out, { name = it.displayName, count = it.amount })
+            table.insert(out, {name=it.displayName,count=it.amount})
         end
     end
-    table.sort(out, function(a, b) return a.name < b.name end)
+    table.sort(out, function(a,b) return a.name < b.name end)
     return out
 end
 
 ------------------------------------------------------------
--- Powah Ender Cell Energy
+-- Powah Energy
 ------------------------------------------------------------
 local function getEnergyTotals()
-    local totalStored = 0
-    local totalMax = 0
-
+    local stored, max = 0, 0
     for _, name in ipairs(peripheral.getNames()) do
         if name:match("^ender_cell_") then
-            local cell = peripheral.wrap(name)
-            if cell and cell.getEnergy and cell.getMaxEnergy then
-                totalStored = totalStored + (cell.getEnergy() or 0)
-                totalMax    = totalMax    + (cell.getMaxEnergy() or 0)
+            local c = peripheral.wrap(name)
+            if c and c.getEnergy then
+                stored = stored + (c.getEnergy() or 0)
+                max    = max    + (c.getMaxEnergy() or 0)
             end
         end
     end
+    return stored, max
+end
 
-    return totalStored, totalMax
+------------------------------------------------------------
+-- Player Info Helpers
+------------------------------------------------------------
+local function getPlayers()
+    if not commands then return {} end
+    local ok, data = pcall(commands.list)
+    if ok and data then return data end
+    return {}
+end
+
+local function getPlayerInfoSafe(p)
+    if not commands then return {} end
+    local ok, data = pcall(commands.getPlayerInfo, p)
+    if ok and data then return data end
+    return {}
+end
+
+------------------------------------------------------------
+-- Server Info Helpers
+------------------------------------------------------------
+local function getTPS()
+    if not commands or not commands.tps then return {mean=0,min=0,max=0} end
+    local ok, data = pcall(commands.tps)
+    if ok and data then return data end
+    return {mean=0,min=0,max=0}
+end
+
+local function getWeather()
+    if not commands or not commands.weather then return "?" end
+    local ok, data = pcall(commands.weather)
+    if ok and data then return tostring(data) end
+    return "?"
+end
+
+local function getWorldTime()
+    if not commands or not commands.time then return 0 end
+    local ok, data = pcall(commands.time)
+    if ok and data then return data end
+    return 0
+end
+
+local function getMemory()
+    if not commands or not commands.memory then return 0 end
+    local ok, data = pcall(commands.memory)
+    if ok and data then return data end
+    return 0
 end
 
 ------------------------------------------------------------
@@ -133,42 +155,35 @@ end
 ------------------------------------------------------------
 function ui.draw()
     local w, h = mon.getSize()
-    local colWidth = math.floor(w / 3)
+
+    -- Column widths
+    local col3Width = math.floor(w * 0.20)
+    local col1Width = math.floor((w - col3Width) * 0.50)
+    local col2Width = w - col3Width - col1Width
 
     local col1 = 1
-    local col2 = col1 + colWidth
-    local col3 = col2 + colWidth
+    local col2 = col1 + col1Width
+    local col3 = col2 + col2Width
 
-    -- Full-frame buffer
+    -- Full buffer
     local buffer = {}
-    for y = 1, h do
-        buffer[y] = string.rep(" ", w)
-    end
+    for y=1,h do buffer[y] = string.rep(" ", w) end
 
     --------------------------------------------------------
-    -- ENERGY BAR (ASCII only, one line)
+    -- ENERGY BAR (ASCII)
     --------------------------------------------------------
     local stored, max = getEnergyTotals()
-    local pct = (max > 0) and math.floor((stored / max) * 100) or 0
+    local pct = (max > 0) and math.floor((stored/max)*100) or 0
 
-    local left = string.format(
-        "[ ENERGY ] %s / %s RF (%d%%) ",
-        stored, max, pct
-    )
-
+    local left = string.format("[ ENERGY ] %s / %s RF (%d%%) ", stored, max, pct)
     local barWidth = w - #left
     if barWidth < 10 then barWidth = 10 end
 
-    local filled = math.floor((pct / 100) * barWidth)
+    local filled = math.floor((pct/100)*barWidth)
     local bar = string.rep("#", filled) .. string.rep("-", barWidth - filled)
 
     local line = left .. bar
-    if #line > w then
-        line = line:sub(1, w)
-    else
-        line = line .. string.rep(" ", w - #line)
-    end
-
+    if #line < w then line = line .. string.rep(" ", w - #line) end
     buffer[1] = line
 
     --------------------------------------------------------
@@ -177,29 +192,22 @@ function ui.draw()
     local gems   = collectGems()
     local raw    = collectRaw()
     local ingots = collectIngots()
+    local players = getPlayers()
 
     --------------------------------------------------------
     -- Column writer
     --------------------------------------------------------
-    local function writeColumn(startX, title, list, startY)
+    local function writeColumn(startX, width, title, list, startY)
         local y = startY
-
-        -- Title
-        local t = title
-        if #t > colWidth then t = t:sub(1, colWidth) end
-        t = t .. string.rep(" ", colWidth - #t)
-        buffer[y] = buffer[y]:sub(1, startX - 1) .. t .. buffer[y]:sub(startX + #t)
+        local t = title .. string.rep(" ", width - #title)
+        buffer[y] = buffer[y]:sub(1,startX-1) .. t .. buffer[y]:sub(startX+width)
         y = y + 2
 
-        -- Items
-        for i = 1, math.min(#list, h - y) do
+        for i=1, math.min(#list, h-y) do
             local line = list[i].name .. ": " .. list[i].count
-            if #line > colWidth then
-                line = line:sub(1, colWidth)
-            end
-            line = line .. string.rep(" ", colWidth - #line)
-
-            buffer[y] = buffer[y]:sub(1, startX - 1) .. line .. buffer[y]:sub(startX + #line)
+            if #line > width then line = line:sub(1,width) end
+            line = line .. string.rep(" ", width - #line)
+            buffer[y] = buffer[y]:sub(1,startX-1) .. line .. buffer[y]:sub(startX+width)
             y = y + 1
         end
 
@@ -209,30 +217,99 @@ function ui.draw()
     --------------------------------------------------------
     -- Column 1: GEMS then RAW
     --------------------------------------------------------
-    local nextY = writeColumn(col1, "[ GEMS ]", gems, 3)
-    writeColumn(col1, "[ RAW ]", raw, nextY + 1)
+    local nextY = writeColumn(col1, col1Width, "[ GEMS ]", gems, 3)
+    writeColumn(col1, col1Width, "[ RAW ]", raw, nextY + 1)
 
     --------------------------------------------------------
     -- Column 2: INGOTS
     --------------------------------------------------------
-    writeColumn(col2, "[ INGOTS ]", ingots, 3)
+    writeColumn(col2, col2Width, "[ INGOTS ]", ingots, 3)
 
     --------------------------------------------------------
-    -- Column 3: RESERVED FOR SPAWNER DROPS
+    -- Column 3: PLAYER + SERVER INFO
     --------------------------------------------------------
-    writeColumn(col3, "[ SPAWNER DROPS ]", {}, 3)
+    local y = 3
+
+    -- PLAYERS
+    local function writeC3(str)
+        if #str > col3Width then str = str:sub(1,col3Width) end
+        str = str .. string.rep(" ", col3Width - #str)
+        buffer[y] = buffer[y]:sub(1,col3-1) .. str .. buffer[y]:sub(col3+col3Width)
+        y = y + 1
+    end
+
+    writeC3("[ PLAYERS ]")
+    y = y + 1
+
+    for _, p in ipairs(players) do
+        local info = getPlayerInfoSafe(p)
+        local dim  = info.dimension or "?"
+        local pos  = info.pos or {0,0,0}
+        local afk  = (info.movement == 0) and "yes" or "no"
+
+        writeC3(p)
+        writeC3("Dim: " .. dim)
+        writeC3(string.format("XYZ: %d %d %d", pos[1] or 0, pos[2] or 0, pos[3] or 0))
+        writeC3("AFK: " .. afk)
+        y = y + 1
+    end
+
+    y = y + 1
+
+    -- TPS
+    writeC3("[ TPS ]")
+    y = y + 1
+
+    local tps = getTPS()
+    writeC3(string.format("Mean: %.1f", tps.mean))
+    writeC3(string.format("Min:  %.1f", tps.min))
+    writeC3(string.format("Max:  %.1f", tps.max))
+    y = y + 2
+
+    -- UPTIME
+    writeC3("[ UPTIME ]")
+    y = y + 1
+
+    local uptimeTicks = os.clock() * 20
+    local uptimeHours = math.floor(uptimeTicks / 72000)
+    local uptimeMins  = math.floor((uptimeTicks % 72000) / 1200)
+    writeC3(string.format("%dh %dm", uptimeHours, uptimeMins))
+    y = y + 2
+
+    -- TIME
+    writeC3("[ TIME ]")
+    y = y + 1
+
+    local worldTime = getWorldTime()
+    local dayTime = worldTime % 24000
+    writeC3("Ticks: " .. dayTime)
+    writeC3("Phase: " .. ((dayTime > 13000) and "Night" or "Day"))
+    y = y + 2
+
+    -- WEATHER
+    writeC3("[ WEATHER ]")
+    y = y + 1
+    writeC3(getWeather())
+    y = y + 2
+
+    -- MEMORY
+    writeC3("[ MEMORY ]")
+    y = y + 1
+    local mem = getMemory()
+    writeC3(string.format("%d MB", mem))
+    y = y + 1
 
     --------------------------------------------------------
-    -- Flush buffer (no flicker)
+    -- Flush buffer
     --------------------------------------------------------
-    for y = 1, h do
-        mon.setCursorPos(1, y)
-        mon.write(buffer[y])
+    for yy=1,h do
+        mon.setCursorPos(1,yy)
+        mon.write(buffer[yy])
     end
 end
 
 ------------------------------------------------------------
--- Update interval
+-- Update loop
 ------------------------------------------------------------
 function ui.run()
     while true do
